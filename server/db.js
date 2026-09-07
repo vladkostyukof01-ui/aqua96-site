@@ -83,6 +83,25 @@ db.exec(`
     sort_order INTEGER NOT NULL DEFAULT 0
   );
 
+  -- Товарные карточки — реальные позиции каталога с оригинала (архив Wayback
+  -- Machine, страницы товаров /uploads/product/<id>/). category_id — привязка
+  -- к разделу (Бассейны/Сауны/Турецкие бани), group_title — сопоставление с
+  -- одним из существующих product_groups по смыслу (текстом, не строгий FK,
+  -- т.к. часть карточек не укладывается ровно в один подраздел).
+  CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category_id INTEGER NOT NULL REFERENCES service_categories(id) ON DELETE CASCADE,
+    group_title TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL,
+    brand TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    specs TEXT NOT NULL DEFAULT '',
+    price TEXT NOT NULL DEFAULT '',
+    variants TEXT NOT NULL DEFAULT '',
+    image TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0
+  );
+
   -- Заявки с формы обратной связи.
   CREATE TABLE IF NOT EXISTS leads (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

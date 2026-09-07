@@ -171,6 +171,44 @@ function renderBrandStrip(brands) {
   return brands.map(b => `<span class="brand-chip">${esc(b.name)}</span>`).join('');
 }
 
+function renderProductCards(products) {
+  if (!products || !products.length) return '';
+  // Группируем по group_title, сохраняя порядок первого появления.
+  const groups = [];
+  const byGroup = new Map();
+  products.forEach(p => {
+    const key = p.group_title || 'Прочее оборудование';
+    if (!byGroup.has(key)) { byGroup.set(key, []); groups.push(key); }
+    byGroup.get(key).push(p);
+  });
+  return groups.map(groupTitle => `
+    <div class="product-group">
+      <h3 class="product-group-title">${esc(groupTitle)}</h3>
+      <div class="product-grid">
+        ${byGroup.get(groupTitle).map(renderProductCard).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderProductCard(p) {
+  const specsHtml = p.specs
+    ? `<ul class="product-specs">${p.specs.split('\n').filter(Boolean).map(line => `<li>${esc(line)}</li>`).join('')}</ul>`
+    : '';
+  return `
+    <article class="product-card">
+      <div class="product-card-media">${p.image ? `<img src="${escAttr(p.image)}" alt="${escAttr(p.title)}" loading="lazy">` : '<span class="product-card-noimg">Фото по запросу</span>'}</div>
+      <div class="product-card-body">
+        ${p.brand ? `<span class="product-card-brand">${esc(p.brand)}</span>` : ''}
+        <h4 class="product-card-title">${esc(p.title)}</h4>
+        ${p.description ? `<p class="product-card-desc">${esc(p.description)}</p>` : ''}
+        ${specsHtml}
+        ${p.price ? `<div class="product-card-price">${esc(p.price)}</div>` : ''}
+      </div>
+    </article>
+  `;
+}
+
 function renderReferenceTable(projects) {
   return `<div class="ref-table">${projects.map((p, i) => `
     <div class="ref-row">

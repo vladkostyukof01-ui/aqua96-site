@@ -43,6 +43,14 @@
       <a href="/kontakty" class="btn btn-accent" style="width:100%; justify-content:center;">Задать вопрос по разделу</a>
     </aside>
   </section>
+
+  <section class="products-section" id="productsSection" hidden>
+    <div class="wrap">
+      <h2>Каталог оборудования</h2>
+      <p class="products-intro">Часть позиций из ассортимента — фотографии карточек уточняются, актуальные наличие и цену подскажет менеджер.</p>
+      <div id="productsList"></div>
+    </div>
+  </section>
 </main>
 
 <div id="footerPlaceholder"></div>
@@ -75,11 +83,26 @@ async function loadCategory() {
     document.getElementById('categoryText').innerHTML = (category.intro || '').split('\n').map(p => `<p>${esc(p)}</p>`).join('');
     document.getElementById('groupsTable').innerHTML = renderProductGroups(category.groups);
     document.getElementById('categoryBrands').innerHTML = renderBrandStrip(category.brands);
+
+    loadProducts(slug);
   } catch (err) {
     console.error('Не удалось загрузить раздел:', err);
   }
 }
 loadCategory();
+
+async function loadProducts(slug) {
+  try {
+    const res = await fetch('/api/service-categories/' + encodeURIComponent(slug) + '/products');
+    if (!res.ok) return;
+    const products = await res.json();
+    if (!products.length) return;
+    document.getElementById('productsList').innerHTML = renderProductCards(products);
+    document.getElementById('productsSection').hidden = false;
+  } catch (err) {
+    console.error('Не удалось загрузить товары раздела:', err);
+  }
+}
 </script>
 </body>
 </html>

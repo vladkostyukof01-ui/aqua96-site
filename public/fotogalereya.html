@@ -24,27 +24,108 @@
   <div class="page-header wrap">
     <span class="eyebrow">Фотогалерея</span>
     <h1>Бассейны, сауны и турецкие бани</h1>
-    <p>Небольшая подборка изображений по трём направлениям работы. Фотографии конкретных выполненных объектов предоставляются по запросу — отдельной фотогалереи проектов на сайте пока нет.</p>
+    <p>Фотографии построенных объектов «Аква 96» по трём направлениям работы.</p>
   </div>
 
-  <section class="wrap" style="padding: 48px 0 20px;">
-    <div class="gallery-grid">
-      <div class="gallery-item"><img src="/img/pool_1.jpg" alt="Бассейн с подсветкой и мозаичной отделкой" loading="lazy"><span class="gallery-caption">Бассейны</span></div>
-      <div class="gallery-item"><img src="/img/pool_2.jpg" alt="Крытый бассейн с мозаичной чашей" loading="lazy"><span class="gallery-caption">Бассейны</span></div>
-      <div class="gallery-item"><img src="/img/pool_3_enclosure.jpg" alt="Уличный бассейн с раздвижным павильоном" loading="lazy"><span class="gallery-caption">Бассейны</span></div>
-      <div class="gallery-item"><img src="/img/sauna_1.jpg" alt="Интерьер деревянной сауны с подсветкой" loading="lazy"><span class="gallery-caption">Сауны</span></div>
-      <div class="gallery-item"><img src="/img/sauna_2.jpg" alt="Сауна с деревянными полками" loading="lazy"><span class="gallery-caption">Сауны</span></div>
-      <div class="gallery-item"><img src="/img/sauna_3.jpg" alt="Сауна с потолком из деревянных реек" loading="lazy"><span class="gallery-caption">Сауны</span></div>
-      <div class="gallery-item"><img src="/img/sauna_4_accessories.jpg" alt="Банные аксессуары — веник, ковш, шайка" loading="lazy"><span class="gallery-caption">Сауны</span></div>
-      <div class="gallery-item"><img src="/img/hamam_1.jpg" alt="Турецкая баня с мраморной лежанкой и мозаикой" loading="lazy"><span class="gallery-caption">Турецкие бани</span></div>
-      <div class="gallery-item"><img src="/img/hamam_2.jpg" alt="Хаммам с золотой мозаикой" loading="lazy"><span class="gallery-caption">Турецкие бани</span></div>
-    </div>
-    <p class="gallery-note">Фотографии конкретных объектов, построенных «Аква 96» (список — на странице «О компании»), предоставляются по запросу при обращении в компанию. На момент подготовки этого сайта отдельная фотогалерея выполненных проектов на исходном ресурсе отсутствовала.</p>
+  <section class="wrap" style="padding: 24px 0 20px;">
+    <div class="gallery-filters" id="galleryFilters"></div>
+    <div class="gallery-grid" id="galleryGrid"></div>
   </section>
 </main>
+
+<div class="lightbox" id="lightbox" hidden>
+  <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Закрыть">✕</button>
+  <button type="button" class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Предыдущее фото">‹</button>
+  <img class="lightbox-img" id="lightboxImg" src="" alt="">
+  <button type="button" class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Следующее фото">›</button>
+</div>
 
 <div id="footerPlaceholder"></div>
 
 <script src="/common.js"></script>
+<script>
+let allImages = []; // { url, label, slug }
+let currentFilter = 'all';
+let lightboxIndex = -1;
+
+function currentList() {
+  return currentFilter === 'all' ? allImages : allImages.filter(i => i.slug === currentFilter);
+}
+
+async function loadGallery() {
+  try {
+    const res = await fetch('/api/gallery');
+    const groups = await res.json();
+    allImages = [];
+    groups.forEach(g => {
+      g.images.forEach(url => allImages.push({ url, label: g.label, slug: g.slug }));
+    });
+
+    const filterHtml = ['<button type="button" class="gallery-filter is-active" data-slug="all">Все (' + allImages.length + ')</button>']
+      .concat(groups.filter(g => g.images.length).map(g => `<button type="button" class="gallery-filter" data-slug="${escAttr(g.slug)}">${esc(g.label)} (${g.images.length})</button>`))
+      .join('');
+    document.getElementById('galleryFilters').innerHTML = filterHtml;
+    document.querySelectorAll('.gallery-filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.gallery-filter').forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+        currentFilter = btn.dataset.slug;
+        renderGrid();
+      });
+    });
+
+    renderGrid();
+  } catch (err) {
+    console.error('Не удалось загрузить фотогалерею:', err);
+    document.getElementById('galleryGrid').innerHTML = '<p class="gallery-note">Не удалось загрузить фотографии. Попробуйте обновить страницу.</p>';
+  }
+}
+
+function renderGrid() {
+  const list = currentList();
+  document.getElementById('galleryGrid').innerHTML = list.map((item, i) => `
+    <div class="gallery-item" data-index="${i}">
+      <img src="${escAttr(item.url)}" alt="${escAttr(item.label)} — фото объекта «Аква 96»" loading="lazy">
+      <span class="gallery-caption">${esc(item.label)}</span>
+    </div>
+  `).join('');
+  document.querySelectorAll('#galleryGrid .gallery-item').forEach(el => {
+    el.addEventListener('click', () => openLightbox(Number(el.dataset.index)));
+  });
+}
+
+function openLightbox(index) {
+  lightboxIndex = index;
+  updateLightbox();
+  document.getElementById('lightbox').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').hidden = true;
+  document.body.style.overflow = '';
+}
+function updateLightbox() {
+  const list = currentList();
+  if (!list.length) return;
+  if (lightboxIndex < 0) lightboxIndex = list.length - 1;
+  if (lightboxIndex >= list.length) lightboxIndex = 0;
+  const item = list[lightboxIndex];
+  const img = document.getElementById('lightboxImg');
+  img.src = item.url;
+  img.alt = item.label;
+}
+document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+document.getElementById('lightboxPrev').addEventListener('click', () => { lightboxIndex--; updateLightbox(); });
+document.getElementById('lightboxNext').addEventListener('click', () => { lightboxIndex++; updateLightbox(); });
+document.getElementById('lightbox').addEventListener('click', (e) => { if (e.target.id === 'lightbox') closeLightbox(); });
+document.addEventListener('keydown', (e) => {
+  if (document.getElementById('lightbox').hidden) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft') { lightboxIndex--; updateLightbox(); }
+  if (e.key === 'ArrowRight') { lightboxIndex++; updateLightbox(); }
+});
+
+loadGallery();
+</script>
 </body>
 </html>

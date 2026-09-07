@@ -81,12 +81,43 @@ app.get('/api/service-categories/:slug', (req, res) => {
   res.json({ ...category, groups, brands });
 });
 
+app.get('/api/service-categories/:slug/products', (req, res) => {
+  const category = db.prepare('SELECT id FROM service_categories WHERE slug = ?').get(req.params.slug);
+  if (!category) return res.status(404).json({ error: 'Раздел не найден.' });
+  const rows = db.prepare(`
+    SELECT id, group_title, title, brand, description, specs, price, variants, image
+    FROM products WHERE category_id = ? ORDER BY sort_order
+  `).all(category.id);
+  res.json(rows);
+});
+
 app.get('/api/reference-projects', (req, res) => {
   res.json(db.prepare('SELECT id, client_name, city, scope FROM reference_projects ORDER BY sort_order').all());
 });
 
 app.get('/api/aggregate-stats', (req, res) => {
   res.json(aggregateStats);
+});
+
+const GALLERY_CATEGORIES = {
+  'basseyny': 'Бассейны',
+  'sauny': 'Сауны',
+  'turetskie-bani': 'Турецкие бани',
+};
+app.get('/api/gallery', (req, res) => {
+  const galleryRoot = path.join(__dirname, '..', 'public', 'img', 'gallery');
+  const result = Object.entries(GALLERY_CATEGORIES).map(([slug, label]) => {
+    let files = [];
+    try {
+      files = fs.readdirSync(path.join(galleryRoot, slug))
+        .filter(f => /\.(jpe?g|png|webp|gif)$/i.test(f))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    } catch (err) {
+      files = [];
+    }
+    return { slug, label, images: files.map(f => `/img/gallery/${slug}/${f}`) };
+  });
+  res.json(result);
 });
 
 app.get('/api/service-regions', (req, res) => {

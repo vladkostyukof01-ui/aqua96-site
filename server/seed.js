@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const db = require('./db');
 const { settings } = require('./seed_settings');
 const { categories, referenceProjects, aggregateStats, serviceRegions } = require('./seed_content');
+const { products } = require('./seed_products');
 
 function seedSettings() {
   const upsert = db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING`);
@@ -95,6 +96,40 @@ function seedRegions() {
   console.log(`Загружено регионов обслуживания: ${serviceRegions.length}.`);
 }
 
+function seedProducts() {
+  const count = db.prepare('SELECT COUNT(*) AS c FROM products').get().c;
+  if (count > 0) {
+    console.log('Товарные карточки уже загружены, пропускаю.');
+    return;
+  }
+  const findCategory = db.prepare('SELECT id FROM service_categories WHERE slug = ?');
+  const insert = db.prepare(`
+    INSERT INTO products (category_id, group_title, title, brand, description, specs, price, variants, image, sort_order)
+    VALUES (@category_id, @group_title, @title, @brand, @description, @specs, @price, @variants, @image, @sort_order)
+  `);
+  let skipped = 0;
+  const tx = db.transaction(() => {
+    products.forEach((p, i) => {
+      const category = findCategory.get(p.category_slug);
+      if (!category) { skipped += 1; return; }
+      insert.run({
+        category_id: category.id,
+        group_title: p.group_title || '',
+        title: p.title,
+        brand: p.brand || '',
+        description: p.description || '',
+        specs: p.specs || '',
+        price: p.price || '',
+        variants: p.variants || '',
+        image: p.image || '',
+        sort_order: i,
+      });
+    });
+  });
+  tx();
+  console.log(`Загружено товарных карточек: ${products.length - skipped}${skipped ? `, пропущено (раздел не найден): ${skipped}` : ''}.`);
+}
+
 function seedAdmin() {
   const count = db.prepare('SELECT COUNT(*) AS c FROM admins').get().c;
   if (count > 0) {
@@ -112,5 +147,6 @@ seedSettings();
 seedCategories();
 seedReferenceProjects();
 seedRegions();
+seedProducts();
 seedAdmin();
 console.log('Готово. Сводные показатели (250+/300+/100+ частных объектов) выводятся из server/seed_content.js#aggregateStats на главной без отдельной таблицы.');
