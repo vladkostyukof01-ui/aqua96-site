@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Контакты — Аква 96, Екатеринбург</title>
+<meta name="description" content="Контакты «Аква 96» в Екатеринбурге: адрес на ул. 8 Марта, 4, оф. 330, телефон, email. Оставьте заявку прямо с сайта.">
+<link rel="canonical" href="https://ЗАМЕНИТЕ-НА-ДОМЕН.ru/kontakty">
+<link rel="icon" type="image/png" href="/img/logo.png">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div id="navPlaceholder"></div>
+
+<main>
+  <div class="wrap breadcrumbs">
+    <a href="/">Главная</a> / <span>Контакты</span>
+  </div>
+  <div class="page-header wrap">
+    <span class="eyebrow">Контакты</span>
+    <h1>Как нас найти</h1>
+    <p id="legalAddress"></p>
+  </div>
+
+  <section class="wrap" style="padding: 40px 0 56px;">
+    <div class="map-embed">
+      <iframe id="mapFrame" loading="lazy" title="Карта проезда — Аква 96"></iframe>
+    </div>
+  </section>
+
+  <section class="section" id="contact" style="border-bottom: none; padding-top: 0;">
+    <div class="wrap">
+      <div class="gauge-block">
+        <div class="gauge-head">
+          <h2>Оставьте заявку — мы перезвоним</h2>
+          <span class="tag">заявка на консультацию</span>
+        </div>
+        <div class="gauge-grid">
+          <div class="gauge-fields">
+            <dl>
+              <div><dt>Телефон</dt><dd><a id="contactPhone" href="#"></a></dd></div>
+              <div><dt>Доп. телефон</dt><dd><a id="contactPhoneAlt" href="#"></a></dd></div>
+              <div><dt>Email</dt><dd><a id="contactEmail" href="#"></a></dd><dd class="sub" id="contactEmailAlt"></dd></div>
+            </dl>
+          </div>
+          <form class="gauge-form" id="leadForm">
+            <div class="gf-field"><label for="fname">Имя</label><input type="text" id="fname" placeholder="Как к вам обращаться" required></div>
+            <div class="gf-field"><label for="fphone">Телефон</label><input type="tel" id="fphone" placeholder="+7 (___) ___-__-__" required></div>
+            <div class="gf-field"><label for="fdirection">Интересующее направление</label>
+              <select id="fdirection">
+                <option value="">Не выбрано</option>
+                <option value="basseyny">Бассейн</option>
+                <option value="sauny">Сауна</option>
+                <option value="turetskie-bani">Турецкая баня</option>
+              </select>
+            </div>
+            <div class="gf-field"><label for="fmessage">Сообщение</label><textarea id="fmessage" rows="3" placeholder="Кратко опишите задачу"></textarea></div>
+            <label class="gf-consent"><input type="checkbox" id="fconsent" required><span>Я согласен(на) на <a href="/privacy" target="_blank" rel="noopener">обработку персональных данных</a></span></label>
+            <button type="submit" class="btn btn-accent">Отправить заявку</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="footerPlaceholder"></div>
+
+<script src="/common.js"></script>
+<script>
+async function loadContacts() {
+  try {
+    const settings = await loadSettingsGlobal();
+    document.getElementById('contactPhone').textContent = settings.phone || '';
+    document.getElementById('contactPhone').href = telHref(settings.phone);
+    document.getElementById('contactPhoneAlt').textContent = settings.phone_alt || '';
+    document.getElementById('contactPhoneAlt').href = telHref(settings.phone_alt);
+    document.getElementById('contactEmail').textContent = settings.email || '';
+    document.getElementById('contactEmail').href = 'mailto:' + (settings.email || '');
+    document.getElementById('contactEmailAlt').textContent = settings.email_alt || '';
+    setText('legalAddress', settings.legal_address || '');
+    const lat = settings.map_lat, lon = settings.map_lon;
+    if (lat && lon) {
+      document.getElementById('mapFrame').src = `https://yandex.ru/map-widget/v1/?ll=${lon}%2C${lat}&z=16&pt=${lon},${lat},pm2rdm`;
+    }
+  } catch (err) {
+    console.error('Не удалось загрузить контакты:', err);
+  }
+}
+loadContacts();
+
+const leadForm = document.getElementById('leadForm');
+if (leadForm) {
+  leadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('fname').value;
+    const phone = document.getElementById('fphone').value;
+    const direction = document.getElementById('fdirection').value;
+    const message = document.getElementById('fmessage').value;
+    const consent = document.getElementById('fconsent').checked;
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, direction, message, consent, source: 'kontakty-form' }),
+      });
+      if (!res.ok) throw new Error('Ошибка отправки');
+      leadForm.innerHTML = '<p style="font-family: var(--font-display); font-size: 17px;">Спасибо! Мы свяжемся с вами в ближайшее время.</p>';
+    } catch (err) {
+      alert('Не удалось отправить заявку. Попробуйте позвонить нам напрямую.');
+    }
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>О компании — Аква 96, Екатеринбург</title>
+<meta name="description" content="«Аква 96» — проектирование, строительство и поставка оборудования для бассейнов, саун и турецких бань в Екатеринбурге. Более 50 именных объектов и сотни частных заказов.">
+<link rel="canonical" href="https://ЗАМЕНИТЕ-НА-ДОМЕН.ru/o-kompanii">
+<link rel="icon" type="image/png" href="/img/logo.png">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div id="navPlaceholder"></div>
+
+<main>
+  <div class="wrap breadcrumbs">
+    <a href="/">Главная</a> / <span>О компании</span>
+  </div>
+  <div class="page-header wrap">
+    <span class="eyebrow">О компании</span>
+    <h1>Полный цикл строительства бассейнов, саун и турецких бань</h1>
+    <p id="aboutLede"></p>
+  </div>
+
+  <section class="wrap" style="padding: 48px 0;">
+    <div class="about-text" id="aboutText" style="max-width: 780px;"></div>
+  </section>
+
+  <section class="section" id="objects">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="section-num">Наши работы</span>
+        <h2>Более 50 именных объектов в Свердловской области и не только</h2>
+        <p>Список собран с реального сайта компании — фитнес-центры, детские сады, школы, промышленные и религиозные объекты. Ничего не добавлено сверх того, что было опубликовано.</p>
+      </div>
+      <div id="referenceTable"></div>
+      <div class="ref-aggregate" id="aggregateStats"></div>
+    </div>
+  </section>
+</main>
+
+<div id="footerPlaceholder"></div>
+
+<script src="/common.js"></script>
+<script>
+async function loadAbout() {
+  try {
+    const [settings, projects, aggRes] = await Promise.all([
+      loadSettingsGlobal(),
+      fetch('/api/reference-projects').then(r => r.json()),
+      fetch('/api/aggregate-stats').then(r => r.json()),
+    ]);
+    if (settings.about_text) {
+      const lines = settings.about_text.split('\n');
+      setText('aboutLede', lines[0]);
+      const el = document.getElementById('aboutText');
+      el.innerHTML = lines.slice(1).map(p => `<p>${esc(p)}</p>`).join('');
+    }
+    document.getElementById('referenceTable').innerHTML = renderReferenceTable(projects);
+    document.getElementById('aggregateStats').innerHTML = aggRes.map(a => `
+      <div class="ref-aggregate-item"><b>${esc(a.count)}</b><span>${esc(a.label)} — ${esc(a.scope)}</span></div>
+    `).join('');
+  } catch (err) {
+    console.error('Не удалось загрузить страницу о компании:', err);
+  }
+}
+loadAbout();
+</script>
+</body>
+</html>
