@@ -81,7 +81,6 @@ function renderFooter(settings) {
   const html = `
     <footer class="depth-floor">
       <div class="wrap depth-floor-inner">
-        <div class="depth-floor-mark">— дно —</div>
         <div class="depth-floor-grid">
           <div class="depth-floor-col">
             <b>${esc(settings.brand_name || '')}</b>
