@@ -189,8 +189,9 @@ section[id] { scroll-margin-top: 96px; }
 
 /* ============ КАТЕГОРИЯ (страница направления) ============ */
 .category-hero { position: relative; padding: 56px 0 0; }
-.category-hero-media { height: 320px; background-size: cover; background-position: center; border-bottom: 1.5px solid var(--ink); margin-top: 32px; }
-@media (max-width: 640px) { .category-hero-media { height: 200px; } }
+.category-hero-media { height: 480px; background-size: cover; background-position: center; border-bottom: 1.5px solid var(--ink); margin-top: 32px; }
+@media (max-width: 960px) { .category-hero-media { height: 360px; } }
+@media (max-width: 640px) { .category-hero-media { height: 260px; } }
 .category-header { padding: 40px 0 8px; }
 .category-header h1 { font-size: clamp(28px, 4vw, 42px); }
 .category-body-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 64px; align-items: start; padding: 56px 0; }
