@@ -91,6 +91,17 @@ app.get('/api/service-categories/:slug/products', (req, res) => {
   res.json(rows);
 });
 
+app.get('/api/products/:id', (req, res) => {
+  const product = db.prepare(`
+    SELECT p.id, p.group_title, p.title, p.brand, p.description, p.specs, p.price, p.variants, p.image,
+           sc.slug AS category_slug, sc.title AS category_title
+    FROM products p JOIN service_categories sc ON sc.id = p.category_id
+    WHERE p.id = ?
+  `).get(req.params.id);
+  if (!product) return res.status(404).json({ error: 'Товар не найден.' });
+  res.json(product);
+});
+
 app.get('/api/reference-projects', (req, res) => {
   res.json(db.prepare('SELECT id, client_name, city, scope FROM reference_projects ORDER BY sort_order').all());
 });
@@ -257,6 +268,27 @@ CATEGORY_SLUGS.forEach(slug => {
       );
     res.send(html);
   });
+});
+
+app.get('/product/:id', (req, res) => {
+  const product = db.prepare(`
+    SELECT p.title, p.description, sc.slug AS category_slug
+    FROM products p JOIN service_categories sc ON sc.id = p.category_id
+    WHERE p.id = ?
+  `).get(req.params.id);
+  if (!product) {
+    return res.status(404).sendFile(path.join(__dirname, '..', 'public', '404.html'));
+  }
+  const template = fs.readFileSync(path.join(__dirname, '..', 'public', 'product.html'), 'utf8');
+  const title = escapeHtml(product.title + ' — Аква 96, Екатеринбург');
+  const description = escapeHtml((product.description || 'Оборудование для бассейнов, саун и турецких бань.')).slice(0, 160);
+  const html = template
+    .replace('<title id="pageTitle">Товар — Аква 96</title>', `<title id="pageTitle">${title}</title>`)
+    .replace(
+      '<meta name="description" id="pageDescription" content="Оборудование для бассейнов, саун и турецких бань.">',
+      `<meta name="description" id="pageDescription" content="${description}">`
+    );
+  res.send(html);
 });
 
 app.get('/o-kompanii', (req, res) => {

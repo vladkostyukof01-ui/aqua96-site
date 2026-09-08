@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Товар — Аква 96</title>
+<meta name="description" id="pageDescription" content="Оборудование для бассейнов, саун и турецких бань.">
+<link rel="icon" type="image/png" href="/img/logo.png">
+<meta name="robots" content="index, follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div id="navPlaceholder"></div>
+
+<main>
+  <div class="wrap breadcrumbs">
+    <a href="/">Главная</a> / <a id="breadcrumbCategory" href="/"></a> / <span id="breadcrumbCurrent"></span>
+  </div>
+
+  <section class="wrap product-detail" id="productDetail" hidden>
+    <div class="product-detail-media" id="productMedia"></div>
+    <div class="product-detail-body">
+      <span class="product-detail-brand" id="productBrand"></span>
+      <h1 id="productTitle"></h1>
+      <p class="product-detail-desc" id="productDescription"></p>
+      <div class="product-detail-price" id="productPrice"></div>
+      <ul class="product-specs" id="productSimpleSpecs"></ul>
+      <a href="/kontakty" class="btn btn-accent" style="width:100%; justify-content:center;">Оставить заявку на этот товар</a>
+    </div>
+  </section>
+
+  <section class="wrap product-variants-section" id="productVariantsSection" hidden>
+    <h2>Варианты исполнения</h2>
+    <div class="variants-table-wrap">
+      <table class="variants-table" id="variantsTable"></table>
+    </div>
+  </section>
+
+  <section class="wrap" id="notFoundSection" hidden>
+    <p style="padding:60px 0;">Товар не найден. <a href="/">Вернуться на главную →</a></p>
+  </section>
+</main>
+
+<div id="footerPlaceholder"></div>
+
+<script src="/common.js"></script>
+<script>
+function productIdFromPath() {
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  return parts[parts.length - 1];
+}
+
+function parseOneSpecsTable(rawLines) {
+  // rawLines — строки одной таблицы (уже без пустых/мусорных строк).
+  // Ячейки заголовка с переносом строки в оригинальной HTML-таблице
+  // (напр. "Размер" + "H,мм" двумя <p> в одной <th>) при построчном сборе
+  // текста разошлись на несколько строк — они логически образуют ОДНУ
+  // строку заголовка. Строки данных всегда содержат одно и то же число
+  // колонок (равное числу колонок последней строки), поэтому склеиваем
+  // в заголовок все ведущие строки меньшей ширины, до первой строки,
+  // которая уже соответствует этому количеству.
+  if (!rawLines.length) return null;
+  const dataColumnCount = rawLines[rawLines.length - 1].split('|').length;
+  const mergedLines = [];
+  let buffer = '';
+  let inHeader = true;
+  rawLines.forEach(line => {
+    const cellCount = line.split('|').length;
+    if (inHeader && cellCount === dataColumnCount) {
+      if (buffer) { mergedLines.push(buffer); buffer = ''; }
+      inHeader = false;
+      mergedLines.push(line);
+    } else if (inHeader) {
+      buffer = buffer ? buffer + ' ' + line.trim() : line;
+    } else {
+      mergedLines.push(line);
+    }
+  });
+  if (buffer) mergedLines.push(buffer);
+
+  return mergedLines.map(l => l.split('|').map(c => c.trim()));
+}
+
+function parseSpecsTable(specs) {
+  // specs может содержать НЕСКОЛЬКО отдельных таблиц исходного сайта,
+  // разделённых пустой строкой (напр. отдельная таблица на каждый
+  // артикул). Разбиваем по пустым строкам, парсим каждую отдельно и, если
+  // у них одинаковый заголовок, объединяем строки данных под одним
+  // заголовком; иначе показываем только первую валидную таблицу.
+  const blocks = specs.split(/\n\s*\n/).map(block =>
+    block.split('\n')
+      .filter(l => l.includes('|'))
+      .filter(l => l.split('|').some(c => c.trim()))
+  ).filter(lines => lines.length);
+
+  const parsedBlocks = blocks.map(parseOneSpecsTable).filter(Boolean);
+  if (!parsedBlocks.length) return null;
+
+  const [firstHeader, ...firstRows] = parsedBlocks[0];
+  let allRows = firstRows;
+  for (let i = 1; i < parsedBlocks.length; i++) {
+    const [header, ...rows] = parsedBlocks[i];
+    if (header.length === firstHeader.length) {
+      allRows = allRows.concat(rows);
+    }
+  }
+  return [firstHeader, ...allRows];
+}
+
+async function loadProduct() {
+  const id = productIdFromPath();
+  try {
+    const res = await fetch('/api/products/' + encodeURIComponent(id));
+    if (!res.ok) throw new Error('not found');
+    const p = await res.json();
+
+    setText('pageTitle', p.title + ' — Аква 96');
+    setText('breadcrumbCurrent', p.title);
+    const catLink = document.getElementById('breadcrumbCategory');
+    catLink.href = '/' + p.category_slug;
+    catLink.textContent = p.category_title;
+
+    setText('productTitle', p.title);
+    if (p.brand) setText('productBrand', p.brand);
+    if (p.description) setText('productDescription', p.description);
+    if (p.price) setText('productPrice', p.price);
+
+    const media = document.getElementById('productMedia');
+    media.innerHTML = p.image
+      ? `<img src="${escAttr(p.image)}" alt="${escAttr(p.title)}">`
+      : '<span class="product-card-noimg">Фото по запросу</span>';
+
+    const isTable = p.specs && p.specs.includes('|');
+    if (p.specs && !isTable) {
+      document.getElementById('productSimpleSpecs').innerHTML = p.specs.split('\n').filter(Boolean).map(line => `<li>${esc(line)}</li>`).join('');
+    }
+
+    document.getElementById('productDetail').hidden = false;
+
+    if (isTable) {
+      const rows = parseSpecsTable(p.specs);
+      const thead = rows[0];
+      const bodyRows = rows.slice(1);
+      const table = document.getElementById('variantsTable');
+      table.innerHTML = `
+        <thead><tr>${thead.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+        <tbody>${bodyRows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+      `;
+      document.getElementById('productVariantsSection').hidden = false;
+    }
+  } catch (err) {
+    document.getElementById('notFoundSection').hidden = false;
+    console.error('Не удалось загрузить товар:', err);
+  }
+}
+loadProduct();
+</script>
+</body>
+</html>

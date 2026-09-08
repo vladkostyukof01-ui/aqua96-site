@@ -183,7 +183,8 @@ section[id] { scroll-margin-top: 96px; }
 
 /* ============ ПОДРАЗДЕЛЫ КАТАЛОГА (group-table) ============ */
 .group-table { display: flex; flex-direction: column; border-top: 1px solid var(--line-strong); }
-.group-row { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; padding: 16px 4px; border-bottom: 1px solid var(--line); }
+.group-row { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; padding: 16px 4px; border-bottom: 1px solid var(--line); transition: background-color 0.15s ease, padding-left 0.15s ease; }
+.group-row:hover { background: rgba(28, 143, 199, 0.08); padding-left: 10px; }
 .group-title { font-size: 15.5px; color: var(--ink); }
 .group-count { font-family: var(--font-mono); font-size: 13px; color: var(--ink-faint); white-space: nowrap; }
 
@@ -209,7 +210,31 @@ section[id] { scroll-margin-top: 96px; }
 .product-group { margin-top: 36px; }
 .product-group-title { font-family: var(--font-mono); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--signal-deep); border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 20px; }
 .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
-.product-card { border: 1px solid var(--line-strong); background: var(--card); display: flex; flex-direction: column; }
+.product-card { border: 1px solid var(--line-strong); background: var(--card); display: flex; flex-direction: column; text-decoration: none; transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease; }
+.product-card:hover { border-color: var(--signal); box-shadow: 0 8px 24px rgba(28, 143, 199, 0.14); transform: translateY(-2px); }
+.product-card-variants-note { font-family: var(--font-mono); font-size: 11.5px; color: var(--signal-deep); }
+
+/* ============ СТРАНИЦА ТОВАРА (product.html) ============ */
+.product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; padding: 32px 0 56px; }
+@media (max-width: 860px) { .product-detail { grid-template-columns: 1fr; gap: 28px; } }
+.product-detail-media { aspect-ratio: 4 / 3; background: var(--surface-deep); border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.product-detail-media img { width: 100%; height: 100%; object-fit: cover; }
+.product-detail-body { display: flex; flex-direction: column; gap: 12px; }
+.product-detail-brand { font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+.product-detail-body h1 { font-size: clamp(24px, 3vw, 32px); }
+.product-detail-desc { color: var(--ink-soft); font-size: 16px; line-height: 1.6; }
+.product-detail-price { font-family: var(--font-display); font-weight: 600; font-size: 24px; color: var(--signal-deep); margin: 4px 0; }
+.product-detail-body .product-specs { margin-bottom: 8px; }
+.product-detail-body .product-specs li { color: var(--ink-soft); font-size: 14.5px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+
+.product-variants-section { padding: 0 0 56px; }
+.product-variants-section h2 { font-size: clamp(20px, 2.6vw, 26px); margin-bottom: 20px; border-top: 1.5px solid var(--ink); padding-top: 40px; }
+.variants-table-wrap { overflow-x: auto; border: 1px solid var(--line-strong); }
+.variants-table { width: 100%; border-collapse: collapse; font-size: 14px; white-space: nowrap; }
+.variants-table th, .variants-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); }
+.variants-table thead th { background: var(--surface-deep); font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); font-weight: 500; }
+.variants-table tbody tr:last-child td { border-bottom: none; }
+.variants-table tbody tr:hover { background: rgba(28, 143, 199, 0.05); }
 .product-card-media { aspect-ratio: 4 / 3; background: var(--surface-deep); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .product-card-media img { width: 100%; height: 100%; object-fit: cover; }
 .product-card-noimg { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }

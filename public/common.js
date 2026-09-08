@@ -149,12 +149,20 @@ function renderCategoryStrata(categories) {
   `).join('');
 }
 
+function groupAnchorId(title) {
+  return 'group-' + title
+    .toLowerCase()
+    .replace(/[«»"'']/g, '')
+    .replace(/[^a-zа-яё0-9]+/gi, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function renderProductGroups(groups) {
   return `<div class="group-table">${groups.map(g => `
-    <div class="group-row">
+    <a class="group-row" href="#${groupAnchorId(g.title)}">
       <span class="group-title">${esc(g.title)}</span>
       <span class="group-count">${g.item_count != null ? esc(g.item_count) + ' ' + pluralizeTovar(g.item_count) : ''}</span>
-    </div>
+    </a>
   `).join('')}</div>`;
 }
 
@@ -181,7 +189,7 @@ function renderProductCards(products) {
     byGroup.get(key).push(p);
   });
   return groups.map(groupTitle => `
-    <div class="product-group">
+    <div class="product-group" id="${groupAnchorId(groupTitle)}">
       <h3 class="product-group-title">${esc(groupTitle)}</h3>
       <div class="product-grid">
         ${byGroup.get(groupTitle).map(renderProductCard).join('')}
@@ -191,20 +199,25 @@ function renderProductCards(products) {
 }
 
 function renderProductCard(p) {
-  const specsHtml = p.specs
+  // На карточке в каталоге показываем только простые характеристики
+  // (не табличные варианты с ценами — те смотрят на отдельной странице товара).
+  const isTableSpecs = p.specs && p.specs.includes('|');
+  const specsHtml = (p.specs && !isTableSpecs)
     ? `<ul class="product-specs">${p.specs.split('\n').filter(Boolean).map(line => `<li>${esc(line)}</li>`).join('')}</ul>`
     : '';
+  const variantsNote = isTableSpecs ? '<span class="product-card-variants-note">Несколько вариантов исполнения →</span>' : '';
   return `
-    <article class="product-card">
+    <a class="product-card" href="/product/${p.id}">
       <div class="product-card-media">${p.image ? `<img src="${escAttr(p.image)}" alt="${escAttr(p.title)}" loading="lazy">` : '<span class="product-card-noimg">Фото по запросу</span>'}</div>
       <div class="product-card-body">
         ${p.brand ? `<span class="product-card-brand">${esc(p.brand)}</span>` : ''}
         <h4 class="product-card-title">${esc(p.title)}</h4>
         ${p.description ? `<p class="product-card-desc">${esc(p.description)}</p>` : ''}
         ${specsHtml}
+        ${variantsNote}
         ${p.price ? `<div class="product-card-price">${esc(p.price)}</div>` : ''}
       </div>
-    </article>
+    </a>
   `;
 }
 
