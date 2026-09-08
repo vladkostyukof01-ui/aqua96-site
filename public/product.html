@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title id="pageTitle">Товар — Аква 96</title>
 <meta name="description" id="pageDescription" content="Оборудование для бассейнов, саун и турецких бань.">
-<link rel="icon" type="image/png" href="/img/logo.png">
+<link rel="icon" href="/img/favicon.ico" type="image/x-icon">
 <meta name="robots" content="index, follow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -85,12 +85,32 @@ function parseOneSpecsTable(rawLines) {
   return mergedLines.map(l => l.split('|').map(c => c.trim()));
 }
 
+function extractSimpleSpecs(specs) {
+  // Ищет среди блоков specs 2-колоночную key-value таблицу общих
+  // характеристик (напр. "Производитель | HARVIA") — она НЕ является
+  // таблицей вариантов (та шире) и показывается отдельным списком.
+  const blocks = specs.split(/\n\s*\n/).map(block =>
+    block.split('\n')
+      .filter(l => l.includes('|'))
+      .filter(l => l.split('|').some(c => c.trim()))
+  ).filter(lines => lines.length);
+  const twoColBlock = blocks.find(lines => lines.every(l => l.split('|').length === 2));
+  if (!twoColBlock) return [];
+  return twoColBlock.map(l => l.split('|').map(c => c.trim()));
+}
+
 function parseSpecsTable(specs) {
   // specs может содержать НЕСКОЛЬКО отдельных таблиц исходного сайта,
-  // разделённых пустой строкой (напр. отдельная таблица на каждый
-  // артикул). Разбиваем по пустым строкам, парсим каждую отдельно и, если
-  // у них одинаковый заголовок, объединяем строки данных под одним
-  // заголовком; иначе показываем только первую валидную таблицу.
+  // разделённых пустой строкой. Два случая:
+  // 1) Простая key-value таблица общих характеристик ("Производитель |
+  //    HARVIA") ИДЁТ ПЕРЕД настоящей таблицей вариантов ("Модель | Мощность
+  //    | ... | Цена") — у них разная ширина заголовка. В этом случае нужна
+  //    именно таблица вариантов (с наибольшим числом строк данных), а не
+  //    первая попавшаяся.
+  // 2) Несколько таблиц с ОДИНАКОВОЙ шириной заголовка — это варианты
+  //    одного и того же товара, показанные отдельными таблицами на сайте
+  //    (напр. по артикулу) — объединяем их строки данных под одним
+  //    заголовком.
   const blocks = specs.split(/\n\s*\n/).map(block =>
     block.split('\n')
       .filter(l => l.includes('|'))
@@ -99,14 +119,35 @@ function parseSpecsTable(specs) {
 
   const parsedBlocks = blocks.map(parseOneSpecsTable).filter(Boolean);
   if (!parsedBlocks.length) return null;
+  if (parsedBlocks.length === 1) return parsedBlocks[0];
 
-  const [firstHeader, ...firstRows] = parsedBlocks[0];
+  // Группируем блоки по ширине заголовка. Простая key-value сводка
+  // характеристик ("Производитель | HARVIA") всегда имеет 2 колонки —
+  // настоящая таблица вариантов (с моделями/артикулами/ценами) шире.
+  // Поэтому среди групп с шириной > 2 берём ту, что встречается чаще
+  // (несколько таблиц одинаковой широкой формы — варианты одного товара
+  // на разных артикулах); если такой нет, берём просто самую широкую.
+  const groups = new Map();
+  parsedBlocks.forEach(block => {
+    const width = block[0].length;
+    if (!groups.has(width)) groups.set(width, []);
+    groups.get(width).push(block);
+  });
+  const wideWidths = [...groups.keys()].filter(w => w > 2);
+  const candidateWidths = wideWidths.length ? wideWidths : [...groups.keys()];
+  let bestWidth = candidateWidths[0];
+  let bestScore = -1;
+  candidateWidths.forEach(width => {
+    const blocksOfWidth = groups.get(width);
+    const score = blocksOfWidth.length * 1000 + width; // больше таблиц этой ширины важнее, шире — вторично
+    if (score > bestScore) { bestScore = score; bestWidth = width; }
+  });
+  const chosen = groups.get(bestWidth);
+  const [firstHeader, ...firstRows] = chosen[0];
   let allRows = firstRows;
-  for (let i = 1; i < parsedBlocks.length; i++) {
-    const [header, ...rows] = parsedBlocks[i];
-    if (header.length === firstHeader.length) {
-      allRows = allRows.concat(rows);
-    }
+  for (let i = 1; i < chosen.length; i++) {
+    const [, ...rows] = chosen[i];
+    allRows = allRows.concat(rows);
   }
   return [firstHeader, ...allRows];
 }
@@ -137,6 +178,14 @@ async function loadProduct() {
     const isTable = p.specs && p.specs.includes('|');
     if (p.specs && !isTable) {
       document.getElementById('productSimpleSpecs').innerHTML = p.specs.split('\n').filter(Boolean).map(line => `<li>${esc(line)}</li>`).join('');
+    } else if (isTable) {
+      // Если среди табличных блоков есть отдельная 2-колоночная key-value
+      // сводка общих характеристик (не вариантов) — показываем её тоже,
+      // отдельно от таблицы вариантов ниже.
+      const simple = extractSimpleSpecs(p.specs);
+      if (simple.length) {
+        document.getElementById('productSimpleSpecs').innerHTML = simple.map(([k, v]) => `<li>${esc(k)}: ${esc(v)}</li>`).join('');
+      }
     }
 
     document.getElementById('productDetail').hidden = false;
