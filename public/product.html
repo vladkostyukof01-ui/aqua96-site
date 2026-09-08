@@ -105,6 +105,21 @@ function stripCommonPrefix(bodyRows) {
   return bodyRows.map((r, i) => [wordsPerRow[i].slice(commonWords).join(' '), ...r.slice(1)]);
 }
 
+function abbreviateHeader(h) {
+  // В широких таблицах вариантов (11+ колонок, напр. Фильтр IML) заголовки
+  // вида "Площадь фильтрации,м2" при переносе по буквам на узкой колонке
+  // становятся нечитаемыми ("ПЛО/ЩАДЬ/ФИЛ/ЬТР..."). Сокращаем частые длинные
+  // слова до принятых аббревиатур; полный текст остаётся в title-атрибуте
+  // (проставляется в вызывающем коде), так что при наведении видно оригинал.
+  return h
+    .replace(/Площадь фильтрации/i, 'Площадь фильтр.')
+    .replace(/Производительность/i, 'Произв-ть')
+    .replace(/Диаметр/i, 'Диам.')
+    .replace(/Патрубок/i, 'Патруб.')
+    .replace(/Артикул/i, 'Арт.')
+    .replace(/Фильтрат/i, 'Фильтрат');
+}
+
 function extractSimpleSpecs(specs) {
   // Ищет среди блоков specs 2-колоночную key-value таблицу общих
   // характеристик (напр. "Производитель | HARVIA") — она НЕ является
@@ -139,7 +154,17 @@ function parseSpecsTable(specs) {
 
   const parsedBlocks = blocks.map(parseOneSpecsTable).filter(Boolean);
   if (!parsedBlocks.length) return null;
-  if (parsedBlocks.length === 1) return parsedBlocks[0];
+  if (parsedBlocks.length === 1) {
+    // Единственный блок specs. Если это простая 2-колоночная key-value
+    // таблица общих характеристик (без реальных вариантов исполнения),
+    // extractSimpleSpecs уже показывает его же содержимое списком под
+    // ценой — повторять его отдельной таблицей "Варианты исполнения"
+    // ниже было бы чистым дублированием. Такую таблицу не возвращаем.
+    const only = parsedBlocks[0];
+    const isSimpleTwoColumn = only.every(row => row.length === 2);
+    if (isSimpleTwoColumn) return null;
+    return only;
+  }
 
   // Группируем блоки по ширине заголовка. Простая key-value сводка
   // характеристик ("Производитель | HARVIA") всегда имеет 2 колонки —
@@ -212,14 +237,23 @@ async function loadProduct() {
 
     if (isTable) {
       const rows = parseSpecsTable(p.specs);
-      const thead = rows[0];
-      const bodyRows = stripCommonPrefix(rows.slice(1));
-      const table = document.getElementById('variantsTable');
-      table.innerHTML = `
-        <thead><tr>${thead.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-        <tbody>${bodyRows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
-      `;
-      document.getElementById('productVariantsSection').hidden = false;
+      if (rows && rows.length > 1) {
+        const thead = rows[0];
+        const bodyRows = stripCommonPrefix(rows.slice(1));
+        const table = document.getElementById('variantsTable');
+        const isWide = thead.length >= 9;
+        const wideClass = thead.length >= 9 ? ' variants-table--wide' : '';
+        table.className = 'variants-table' + wideClass;
+        table.innerHTML = `
+          <thead><tr>${thead.map(h => {
+            const full = h;
+            const display = isWide ? abbreviateHeader(h) : h;
+            return `<th title="${escAttr(full)}"><span>${esc(display)}</span></th>`;
+          }).join('')}</tr></thead>
+          <tbody>${bodyRows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+        `;
+        document.getElementById('productVariantsSection').hidden = false;
+      }
     }
   } catch (err) {
     document.getElementById('notFoundSection').hidden = false;

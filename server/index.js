@@ -156,9 +156,14 @@ app.post('/api/admin/login', loginLimiter, (req, res) => {
   if (!verifyAdmin(username, password)) {
     return res.status(401).json({ error: 'Неверный логин или пароль.' });
   }
-  req.session.adminUsername = username;
-  const csrfToken = issueCsrfToken(req);
-  res.json({ ok: true, username, csrfToken });
+  req.session.regenerate((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Ошибка сервера. Попробуйте войти снова.' });
+    }
+    req.session.adminUsername = username;
+    const csrfToken = issueCsrfToken(req);
+    res.json({ ok: true, username, csrfToken });
+  });
 });
 
 app.post('/api/admin/logout', (req, res) => {
@@ -175,8 +180,8 @@ app.get('/api/admin/me', (req, res) => {
 
 app.post('/api/admin/change-password', requireAuth, (req, res) => {
   const { newPassword } = req.body || {};
-  if (!newPassword || newPassword.length < 6) {
-    return res.status(400).json({ error: 'Пароль должен быть не короче 6 символов.' });
+  if (!newPassword || newPassword.length < 10) {
+    return res.status(400).json({ error: 'Пароль должен быть не короче 10 символов.' });
   }
   changePassword(req.session.adminUsername, newPassword);
   res.json({ ok: true });
