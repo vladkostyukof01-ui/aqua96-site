@@ -85,6 +85,26 @@ function parseOneSpecsTable(rawLines) {
   return mergedLines.map(l => l.split('|').map(c => c.trim()));
 }
 
+function stripCommonPrefix(bodyRows) {
+  // Название модели в первой колонке часто повторяет полное имя товара
+  // ("HARVIA Электрическая печь Vega HCB600400S ВС60", "...HCB800400S ВС80"),
+  // отчего колонка становится непропорционально широкой. Если у всех строк
+  // общий словесный префикс длиннее одного слова — обрезаем его, оставляя
+  // только уникальную часть (модель/артикул).
+  if (bodyRows.length < 2) return bodyRows;
+  const firstCol = bodyRows.map(r => r[0]);
+  const wordsPerRow = firstCol.map(v => v.split(' '));
+  let commonWords = 0;
+  const minWords = Math.min(...wordsPerRow.map(w => w.length));
+  while (commonWords < minWords - 1) {
+    const word = wordsPerRow[0][commonWords];
+    if (wordsPerRow.every(w => w[commonWords] === word)) commonWords++;
+    else break;
+  }
+  if (commonWords < 2) return bodyRows;
+  return bodyRows.map((r, i) => [wordsPerRow[i].slice(commonWords).join(' '), ...r.slice(1)]);
+}
+
 function extractSimpleSpecs(specs) {
   // Ищет среди блоков specs 2-колоночную key-value таблицу общих
   // характеристик (напр. "Производитель | HARVIA") — она НЕ является
@@ -193,7 +213,7 @@ async function loadProduct() {
     if (isTable) {
       const rows = parseSpecsTable(p.specs);
       const thead = rows[0];
-      const bodyRows = rows.slice(1);
+      const bodyRows = stripCommonPrefix(rows.slice(1));
       const table = document.getElementById('variantsTable');
       table.innerHTML = `
         <thead><tr>${thead.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>

@@ -229,12 +229,13 @@ section[id] { scroll-margin-top: 96px; }
 
 .product-variants-section { padding: 0 0 56px; }
 .product-variants-section h2 { font-size: clamp(20px, 2.6vw, 26px); margin-bottom: 20px; border-top: 1.5px solid var(--ink); padding-top: 40px; }
-.variants-table-wrap { overflow-x: auto; border: 1px solid var(--line-strong); }
-.variants-table { width: 100%; border-collapse: collapse; font-size: 14px; white-space: nowrap; }
-.variants-table th, .variants-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line); }
-.variants-table thead th { background: var(--surface-deep); font-family: var(--font-mono); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-faint); font-weight: 500; }
+.variants-table-wrap { border: 1px solid var(--line-strong); }
+.variants-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13.5px; }
+.variants-table th, .variants-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); word-break: break-word; overflow-wrap: break-word; }
+.variants-table thead th { background: var(--surface-deep); font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-faint); font-weight: 500; line-height: 1.3; }
 .variants-table tbody tr:last-child td { border-bottom: none; }
 .variants-table tbody tr:hover { background: rgba(28, 143, 199, 0.05); }
+@media (max-width: 640px) { .variants-table { font-size: 11.5px; } .variants-table th, .variants-table td { padding: 7px 6px; } }
 .product-card-media { aspect-ratio: 4 / 3; background: var(--surface-deep); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .product-card-media img { width: 100%; height: 100%; object-fit: cover; }
 .product-card-noimg { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; }
