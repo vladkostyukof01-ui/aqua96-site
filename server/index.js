@@ -10,6 +10,12 @@ const { verifyAdmin, changePassword, requireAuth, issueCsrfToken, requireCsrf } 
 const { aggregateStats } = require('./seed_content');
 
 const app = express();
+
+// демонстрационный макет: закрыт от индексации
+app.use((req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  next();
+});
 const PORT = process.env.PORT || 3502;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'change-this-secret-before-deploy';
 
